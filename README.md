@@ -172,19 +172,21 @@ Endpoint para recibir solicitudes de Amazon Alexa.
 }
 ```
 
-**Response:**
+**Response (formato SSML requerido por Alexa):**
 ```json
 {
   "version": "1.0",
   "response": {
     "outputSpeech": {
-      "type": "PlainText",
-      "text": "La inteligencia artificial es..."
+      "type": "SSML",
+      "ssml": "<speak>La inteligencia artificial es...</speak>"
     },
     "shouldEndSession": false
   }
 }
 ```
+
+**Nota importante:** Alexa requiere respuestas en formato SSML, no PlainText. El controlador automáticamente convierte todas las respuestas a SSML usando la función utilitaria `alexaSpeak()`.
 
 **Ejemplo con cURL:**
 ```bash

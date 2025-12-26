@@ -1,4 +1,5 @@
 ### Test Alexa Webhook - LaunchRequest
+# Respuesta esperada: SSML con "Hola, soy Jarvis. ¿Qué deseas preguntar?"
 POST http://localhost:3000/alexa/webhook
 Content-Type: application/json
 
@@ -22,6 +23,7 @@ Content-Type: application/json
 ###
 
 ### Test Alexa Webhook - IntentRequest (AskJarvisIntent)
+# Respuesta esperada: SSML con la respuesta de JARVIS sobre inteligencia artificial
 POST http://localhost:3000/alexa/webhook
 Content-Type: application/json
 
