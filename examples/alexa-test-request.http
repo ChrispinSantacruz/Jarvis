@@ -1,0 +1,85 @@
+### Test Alexa Webhook - LaunchRequest
+POST http://localhost:3000/alexa/webhook
+Content-Type: application/json
+
+{
+  "version": "1.0",
+  "session": {
+    "sessionId": "amzn1.echo-api.session.test123",
+    "application": {
+      "applicationId": "amzn1.ask.skill.test123"
+    },
+    "new": true
+  },
+  "request": {
+    "type": "LaunchRequest",
+    "requestId": "amzn1.echo-api.request.test123",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "locale": "es-ES"
+  }
+}
+
+###
+
+### Test Alexa Webhook - IntentRequest (AskJarvisIntent)
+POST http://localhost:3000/alexa/webhook
+Content-Type: application/json
+
+{
+  "version": "1.0",
+  "session": {
+    "sessionId": "amzn1.echo-api.session.test123",
+    "application": {
+      "applicationId": "amzn1.ask.skill.test123"
+    },
+    "new": false
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "amzn1.echo-api.request.test123",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "locale": "es-ES",
+    "intent": {
+      "name": "AskJarvisIntent",
+      "confirmationStatus": "NONE",
+      "slots": {
+        "question": {
+          "name": "question",
+          "value": "qué es inteligencia artificial",
+          "confirmationStatus": "NONE"
+        }
+      }
+    }
+  }
+}
+
+###
+
+### Test Alexa Webhook - IntentRequest sin pregunta
+POST http://localhost:3000/alexa/webhook
+Content-Type: application/json
+
+{
+  "version": "1.0",
+  "session": {
+    "sessionId": "amzn1.echo-api.session.test123",
+    "application": {
+      "applicationId": "amzn1.ask.skill.test123"
+    },
+    "new": false
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "amzn1.echo-api.request.test123",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "locale": "es-ES",
+    "intent": {
+      "name": "AskJarvisIntent",
+      "confirmationStatus": "NONE",
+      "slots": {}
+    }
+  }
+}
+
+###
+

@@ -121,6 +121,91 @@ Health check del servicio.
 }
 ```
 
+### POST /alexa/webhook
+
+Endpoint para recibir solicitudes de Amazon Alexa.
+
+**Request (LaunchRequest):**
+```json
+{
+  "version": "1.0",
+  "session": {
+    "sessionId": "amzn1.echo-api.session.test123",
+    "application": {
+      "applicationId": "amzn1.ask.skill.test123"
+    },
+    "new": true
+  },
+  "request": {
+    "type": "LaunchRequest",
+    "requestId": "amzn1.echo-api.request.test123",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "locale": "es-ES"
+  }
+}
+```
+
+**Request (IntentRequest):**
+```json
+{
+  "version": "1.0",
+  "session": {
+    "sessionId": "amzn1.echo-api.session.test123",
+    "application": {
+      "applicationId": "amzn1.ask.skill.test123"
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "amzn1.echo-api.request.test123",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "locale": "es-ES",
+    "intent": {
+      "name": "AskJarvisIntent",
+      "slots": {
+        "question": {
+          "value": "qué es inteligencia artificial"
+        }
+      }
+    }
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "version": "1.0",
+  "response": {
+    "outputSpeech": {
+      "type": "PlainText",
+      "text": "La inteligencia artificial es..."
+    },
+    "shouldEndSession": false
+  }
+}
+```
+
+**Ejemplo con cURL:**
+```bash
+curl -X POST http://localhost:3000/alexa/webhook \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": "1.0",
+    "request": {
+      "type": "IntentRequest",
+      "intent": {
+        "name": "AskJarvisIntent",
+        "slots": {
+          "question": {
+            "value": "qué es inteligencia artificial"
+          }
+        }
+      }
+    }
+  }'
+```
+
 ## 🏗️ Estructura del Proyecto
 
 ```
@@ -135,6 +220,14 @@ jarvis/
 │   │   ├── jarvis.prompt.ts    # Prompt del sistema
 │   │   └── dto/
 │   │       └── ask-jarvis.dto.ts # DTOs de request/response
+│   ├── alexa/
+│   │   ├── alexa.module.ts     # Módulo de Alexa
+│   │   ├── alexa.controller.ts # Controlador de Alexa webhook
+│   │   └── dto/
+│   │       └── alexa-request.dto.ts # DTOs de solicitudes Alexa
+├── examples/
+│   ├── test-request.http       # Ejemplos de requests REST
+│   └── alexa-test-request.http  # Ejemplos de requests Alexa
 ├── env.example                 # Ejemplo de variables de entorno
 ├── package.json
 ├── tsconfig.json
@@ -159,14 +252,22 @@ JARVIS está configurado con una personalidad específica:
 - **Claro y conciso**: Sin relleno, preferencia por la claridad
 - **Orientado a ingeniería**: Especializado en software, arquitectura, IA, cloud
 
-## 🔮 Integraciones Futuras
+## 🔮 Integraciones
 
-El proyecto está preparado para:
+### ✅ Implementado
 
-- ✅ **Amazon Alexa Custom Skill**: Estructura lista para recibir requests
-- ✅ **Amazon Polly**: Preparado para síntesis de voz (no implementado aún)
-- ✅ **Contexto conversacional**: Soporte para mantener conversaciones
-- ✅ **Autenticación**: Estructura lista para agregar seguridad
+- **Amazon Alexa Custom Skill**: Endpoint `/alexa/webhook` listo para recibir requests
+  - Soporta `LaunchRequest` e `IntentRequest`
+  - Integrado con el servicio JARVIS
+  - Respuestas en formato compatible con Alexa
+
+### 🚀 Próximas Integraciones
+
+- **Amazon Polly**: Síntesis de voz con voz masculina
+- **SSML**: Respuestas con formato SSML para mejor pronunciación
+- **Echo Show**: Soporte para respuestas con imágenes
+- **Contexto conversacional**: Memoria de conversación entre sesiones
+- **Autenticación**: Seguridad para endpoints públicos
 
 ## 🐛 Manejo de Errores
 
