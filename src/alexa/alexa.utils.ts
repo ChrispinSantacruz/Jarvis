@@ -28,7 +28,7 @@ export function alexaSpeak(
     response: {
       outputSpeech: {
         type: 'SSML',
-        ssml: `<speak><voice name="Andrés">${cleanText}</voice></speak>`,
+        ssml: `<speak><voice name="Miguel">${cleanText}</voice></speak>`,
       },
       shouldEndSession,
     },
@@ -39,7 +39,7 @@ export function alexaSpeak(
     response.response.reprompt = {
       outputSpeech: {
         type: 'SSML',
-        ssml: `<speak><voice name="Andrés">¿Deseas que lo explique con más detalle, te doy un ejemplo, o hacemos otra pregunta?</voice></speak>`,
+        ssml: `<speak><voice name="Miguel">¿Deseas que lo explique con más detalle, te doy un ejemplo, o hacemos otra pregunta?</voice></speak>`,
       },
     };
   }
@@ -118,7 +118,7 @@ export function alexaImageResponse(
     response: {
       outputSpeech: {
         type: 'SSML',
-        ssml: `<speak><voice name="Andrés">${cleanText}</voice></speak>`,
+        ssml: `<speak><voice name="Miguel">${cleanText}</voice></speak>`,
       },
       directives: [
         {
