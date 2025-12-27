@@ -19,10 +19,12 @@ export class AlexaController {
 
       if (!request) {
         this.logger.error('Request no encontrado en el payload');
+        const sessionAttributes = payload?.session?.attributes || {};
         const response = alexaPlainText(
-          'Error: No se recibió una solicitud válida.',
-          true,
+          'Error: No se recibió una solicitud válida. ¿Puedes intentarlo de nuevo?',
           false,
+          true,
+          sessionAttributes,
         );
         this.logger.debug(`No request response: ${JSON.stringify(response)}`);
         return response;
@@ -31,10 +33,12 @@ export class AlexaController {
       // LaunchRequest - Cuando el usuario dice "Alexa, abre Jarvis"
       if (request.type === 'LaunchRequest') {
         this.logger.log('LaunchRequest recibido');
+        const sessionAttributes = payload?.session?.attributes || {};
         const response = alexaPlainText(
           'Hola, soy Jarvis. ¿Qué deseas preguntar?',
           false,
           true,
+          sessionAttributes,
         );
         this.logger.debug(`LaunchRequest response: ${JSON.stringify(response)}`);
         return response;
@@ -57,6 +61,9 @@ export class AlexaController {
 
         // Función helper para procesar cualquier pregunta
         const processQuestion = async (slotName: string, defaultMessage: string) => {
+          // Obtener atributos de sesión existentes
+          const sessionAttributes = payload?.session?.attributes || {};
+
           const questionSlot = intent?.slots?.[slotName];
           let question = questionSlot?.value || 
                         questionSlot?.slotValue?.value || 
@@ -71,6 +78,7 @@ export class AlexaController {
               'No entendí la pregunta. ¿Puedes repetirla?',
               false,
               true,
+              sessionAttributes,
             );
           }
 
@@ -86,14 +94,23 @@ export class AlexaController {
                 'Lo siento, no pude generar una respuesta. Por favor, intenta con otra pregunta.',
                 false,
                 true,
+                sessionAttributes,
               );
             }
 
             // La respuesta ya viene limitada y sanitizada del servicio
             let answer = jarvisResponse.answer || '';
             
-            // Devolver respuesta en formato PlainText con reprompt
-            const alexaResponse = alexaPlainText(answer, false, true);
+            // Actualizar atributos de sesión con la última pregunta y respuesta
+            const updatedSessionAttributes = {
+              ...sessionAttributes,
+              lastQuestion: question.trim(),
+              lastAnswer: answer,
+              lastTimestamp: new Date().toISOString(),
+            };
+            
+            // Devolver respuesta en formato PlainText con reprompt y atributos de sesión
+            const alexaResponse = alexaPlainText(answer, false, true, updatedSessionAttributes);
             this.logger.debug(`Respuesta a enviar a Alexa: ${JSON.stringify(alexaResponse)}`);
             
             return alexaResponse;
@@ -103,6 +120,7 @@ export class AlexaController {
               'Lo siento, ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.',
               false,
               true,
+              sessionAttributes,
             );
           }
         };
@@ -117,6 +135,7 @@ export class AlexaController {
 
         // Manejar CompareIntent
         if (intent.name === 'CompareIntent') {
+          const sessionAttributes = payload?.session?.attributes || {};
           const comparison = intent?.slots?.comparison?.value || 
                             intent?.slots?.comparison?.slotValue?.value || 
                             null;
@@ -125,6 +144,8 @@ export class AlexaController {
             return alexaPlainText(
               'No entendí qué quieres comparar. Por favor, intenta nuevamente.',
               false,
+              true,
+              sessionAttributes,
             );
           }
 
@@ -137,6 +158,8 @@ export class AlexaController {
               return alexaPlainText(
                 'Lo siento, no pude generar una comparación. Por favor, intenta con otra pregunta.',
                 false,
+                true,
+                sessionAttributes,
               );
             }
 
@@ -145,19 +168,28 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false, true);
+            const updatedSessionAttributes = {
+              ...sessionAttributes,
+              lastQuestion: question,
+              lastAnswer: answer,
+              lastTimestamp: new Date().toISOString(),
+            };
+
+            return alexaPlainText(answer, false, true, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en CompareIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la comparación. Por favor, intenta de nuevo.',
               false,
               true,
+              sessionAttributes,
             );
           }
         }
 
         // Manejar TeachIntent
         if (intent.name === 'TeachIntent') {
+          const sessionAttributes = payload?.session?.attributes || {};
           const topic = intent?.slots?.topic?.value || 
                        intent?.slots?.topic?.slotValue?.value || 
                        null;
@@ -167,6 +199,7 @@ export class AlexaController {
               'No entendí sobre qué tema quieres aprender. Por favor, intenta nuevamente.',
               false,
               true,
+              sessionAttributes,
             );
           }
 
@@ -180,6 +213,7 @@ export class AlexaController {
                 'Lo siento, no pude generar una explicación. Por favor, intenta con otro tema.',
                 false,
                 true,
+                sessionAttributes,
               );
             }
 
@@ -188,19 +222,28 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false, true);
+            const updatedSessionAttributes = {
+              ...sessionAttributes,
+              lastQuestion: question,
+              lastAnswer: answer,
+              lastTimestamp: new Date().toISOString(),
+            };
+
+            return alexaPlainText(answer, false, true, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en TeachIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
               true,
+              sessionAttributes,
             );
           }
         }
 
         // Manejar ResearchIntent
         if (intent.name === 'ResearchIntent') {
+          const sessionAttributes = payload?.session?.attributes || {};
           const topic = intent?.slots?.topic?.value || 
                        intent?.slots?.topic?.slotValue?.value || 
                        null;
@@ -210,6 +253,7 @@ export class AlexaController {
               'No entendí sobre qué tema quieres que investigue. Por favor, intenta nuevamente.',
               false,
               true,
+              sessionAttributes,
             );
           }
 
@@ -223,6 +267,7 @@ export class AlexaController {
                 'Lo siento, no pude generar un análisis. Por favor, intenta con otro tema.',
                 false,
                 true,
+                sessionAttributes,
               );
             }
 
@@ -231,19 +276,28 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false, true);
+            const updatedSessionAttributes = {
+              ...sessionAttributes,
+              lastQuestion: question,
+              lastAnswer: answer,
+              lastTimestamp: new Date().toISOString(),
+            };
+
+            return alexaPlainText(answer, false, true, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en ResearchIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la investigación. Por favor, intenta de nuevo.',
               false,
               true,
+              sessionAttributes,
             );
           }
         }
 
         // Manejar OpinionIntent
         if (intent.name === 'OpinionIntent') {
+          const sessionAttributes = payload?.session?.attributes || {};
           const topic = intent?.slots?.topic?.value || 
                        intent?.slots?.topic?.slotValue?.value || 
                        null;
@@ -253,6 +307,7 @@ export class AlexaController {
               'No entendí sobre qué quieres mi opinión. Por favor, intenta nuevamente.',
               false,
               true,
+              sessionAttributes,
             );
           }
 
@@ -266,6 +321,7 @@ export class AlexaController {
                 'Lo siento, no pude generar una opinión. Por favor, intenta con otro tema.',
                 false,
                 true,
+                sessionAttributes,
               );
             }
 
@@ -274,37 +330,49 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false, true);
+            const updatedSessionAttributes = {
+              ...sessionAttributes,
+              lastQuestion: question,
+              lastAnswer: answer,
+              lastTimestamp: new Date().toISOString(),
+            };
+
+            return alexaPlainText(answer, false, true, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en OpinionIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
               true,
+              sessionAttributes,
             );
           }
         }
 
         // Manejar AMAZON.HelpIntent
         if (intent.name === 'AMAZON.HelpIntent') {
+          const sessionAttributes = payload?.session?.attributes || {};
           return alexaPlainText(
             'Puedes preguntarme sobre cualquier tema técnico, pedirme que compare conceptos, que te enseñe algo, que investigue un tema, o que te dé mi opinión. Por ejemplo: "pregunta qué es inteligencia artificial" o "enséñame sobre programación".',
             false,
             true,
+            sessionAttributes,
           );
         }
 
         // Manejar AMAZON.StopIntent y AMAZON.CancelIntent
         if (intent.name === 'AMAZON.StopIntent' || intent.name === 'AMAZON.CancelIntent') {
-          return alexaPlainText('Hasta luego.', true);
+          return alexaPlainText('Hasta luego.', true, false);
         }
 
         // Manejar otros intents si es necesario
         this.logger.warn(`Intent no reconocido: ${intent.name}`);
+        const sessionAttributes = payload?.session?.attributes || {};
         const response = alexaPlainText(
           'No puedo procesar esa solicitud. Por favor, intenta hacer una pregunta.',
           false,
           true,
+          sessionAttributes,
         );
         this.logger.debug(`Unknown intent response: ${JSON.stringify(response)}`);
         return response;

@@ -6,11 +6,13 @@
  * Formatea una respuesta de texto en formato SSML para Alexa
  * @param text - Texto a convertir a SSML
  * @param shouldEndSession - Si la sesión debe terminar después de esta respuesta
+ * @param sessionAttributes - Atributos de sesión para mantener contexto
  * @returns Respuesta formateada para Alexa
  */
 export function alexaSpeak(
   text: string,
   shouldEndSession: boolean = false,
+  sessionAttributes: any = {},
 ): any {
   // Limpiar el texto de caracteres especiales que pueden romper SSML
   const cleanText = text
@@ -22,6 +24,7 @@ export function alexaSpeak(
 
   return {
     version: '1.0',
+    sessionAttributes,
     response: {
       outputSpeech: {
         type: 'SSML',
@@ -38,12 +41,14 @@ export function alexaSpeak(
  * @param text - Texto a enviar
  * @param shouldEndSession - Si la sesión debe terminar después de esta respuesta
  * @param includeReprompt - Si se debe incluir un reprompt para mantener la conversación viva
+ * @param sessionAttributes - Atributos de sesión para mantener contexto
  * @returns Respuesta formateada para Alexa
  */
 export function alexaPlainText(
   text: string,
   shouldEndSession: boolean = false,
   includeReprompt: boolean = true,
+  sessionAttributes: any = {},
 ): any {
   // Asegurar que el texto no sea null/undefined y limpiar caracteres problemáticos
   const cleanText = (text || '').toString().trim();
@@ -53,6 +58,7 @@ export function alexaPlainText(
 
   const response: any = {
     version: '1.0',
+    sessionAttributes,
     response: {
       outputSpeech: {
         type: 'PlainText',
@@ -67,7 +73,7 @@ export function alexaPlainText(
     response.response.reprompt = {
       outputSpeech: {
         type: 'PlainText',
-        text: '¿Deseas hacer otra pregunta?',
+        text: '¿Deseas que lo explique con más detalle, te doy un ejemplo, o hacemos otra pregunta?',
       },
     };
   }
