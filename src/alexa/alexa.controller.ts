@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Logger, HttpCode, HttpStatus } from '@nestjs/common';
 import { JarvisService } from '../jarvis/jarvis.service';
-import { alexaSpeak, alexaPlainText } from './alexa.utils';
+import { alexaSpeak } from './alexa.utils';
 
 @Controller('alexa')
 export class AlexaController {
@@ -20,10 +20,9 @@ export class AlexaController {
       if (!request) {
         this.logger.error('Request no encontrado en el payload');
         const sessionAttributes = payload?.session?.attributes || {};
-        const response = alexaPlainText(
+        const response = alexaSpeak(
           'Error: No se recibió una solicitud válida. ¿Puedes intentarlo de nuevo?',
           false,
-          true,
           sessionAttributes,
         );
         this.logger.debug(`No request response: ${JSON.stringify(response)}`);
@@ -34,10 +33,9 @@ export class AlexaController {
       if (request.type === 'LaunchRequest') {
         this.logger.log('LaunchRequest recibido');
         const sessionAttributes = payload?.session?.attributes || {};
-        const response = alexaPlainText(
+        const response = alexaSpeak(
           'Hola, soy Jarvis. ¿Qué deseas preguntar?',
           false,
-          true,
           sessionAttributes,
         );
         this.logger.debug(`LaunchRequest response: ${JSON.stringify(response)}`);
@@ -52,10 +50,11 @@ export class AlexaController {
 
         if (!intent) {
           this.logger.warn('Intent no encontrado en la solicitud');
-          return alexaPlainText(
+          const sessionAttributes = payload?.session?.attributes || {};
+          return alexaSpeak(
             'No pude identificar tu solicitud. Por favor, intenta nuevamente.',
             false,
-            true,
+            sessionAttributes,
           );
         }
 
@@ -74,10 +73,9 @@ export class AlexaController {
 
           if (!question || question.trim() === '') {
             this.logger.warn(`${slotName} no encontrado o vacío en los slots`);
-            return alexaPlainText(
+            return alexaSpeak(
               'No entendí la pregunta. ¿Puedes repetirla?',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -90,10 +88,9 @@ export class AlexaController {
 
             if (!jarvisResponse || !jarvisResponse.answer) {
               this.logger.error('Respuesta vacía de JarvisService');
-              return alexaPlainText(
+              return alexaSpeak(
                 'Lo siento, no pude generar una respuesta. Por favor, intenta con otra pregunta.',
                 false,
-                true,
                 sessionAttributes,
               );
             }
@@ -110,16 +107,15 @@ export class AlexaController {
             };
             
             // Devolver respuesta en formato PlainText con reprompt y atributos de sesión
-            const alexaResponse = alexaPlainText(answer, false, true, updatedSessionAttributes);
+            const alexaResponse = alexaSpeak(answer, false, updatedSessionAttributes);
             this.logger.debug(`Respuesta a enviar a Alexa: ${JSON.stringify(alexaResponse)}`);
             
             return alexaResponse;
           } catch (error) {
             this.logger.error(`Error al procesar pregunta: ${error.message}`, error.stack);
-            return alexaPlainText(
+            return alexaSpeak(
               'Lo siento, ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -141,10 +137,9 @@ export class AlexaController {
                             null;
           
           if (!comparison || comparison.trim() === '') {
-            return alexaPlainText(
+            return alexaSpeak(
               'No entendí qué quieres comparar. Por favor, intenta nuevamente.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -155,10 +150,9 @@ export class AlexaController {
             const jarvisResponse = await this.jarvisService.askJarvis({ question });
             
             if (!jarvisResponse || !jarvisResponse.answer) {
-              return alexaPlainText(
+              return alexaSpeak(
                 'Lo siento, no pude generar una comparación. Por favor, intenta con otra pregunta.',
                 false,
-                true,
                 sessionAttributes,
               );
             }
@@ -175,13 +169,12 @@ export class AlexaController {
               lastTimestamp: new Date().toISOString(),
             };
 
-            return alexaPlainText(answer, false, true, updatedSessionAttributes);
+            return alexaSpeak(answer, false, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en CompareIntent: ${error.message}`, error.stack);
-            return alexaPlainText(
+            return alexaSpeak(
               'Lo siento, ocurrió un error al procesar la comparación. Por favor, intenta de nuevo.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -195,10 +188,9 @@ export class AlexaController {
                        null;
           
           if (!topic || topic.trim() === '') {
-            return alexaPlainText(
+            return alexaSpeak(
               'No entendí sobre qué tema quieres aprender. Por favor, intenta nuevamente.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -209,10 +201,9 @@ export class AlexaController {
             const jarvisResponse = await this.jarvisService.askJarvis({ question });
             
             if (!jarvisResponse || !jarvisResponse.answer) {
-              return alexaPlainText(
+              return alexaSpeak(
                 'Lo siento, no pude generar una explicación. Por favor, intenta con otro tema.',
                 false,
-                true,
                 sessionAttributes,
               );
             }
@@ -229,13 +220,12 @@ export class AlexaController {
               lastTimestamp: new Date().toISOString(),
             };
 
-            return alexaPlainText(answer, false, true, updatedSessionAttributes);
+            return alexaSpeak(answer, false, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en TeachIntent: ${error.message}`, error.stack);
-            return alexaPlainText(
+            return alexaSpeak(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -249,10 +239,9 @@ export class AlexaController {
                        null;
           
           if (!topic || topic.trim() === '') {
-            return alexaPlainText(
+            return alexaSpeak(
               'No entendí sobre qué tema quieres que investigue. Por favor, intenta nuevamente.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -263,10 +252,9 @@ export class AlexaController {
             const jarvisResponse = await this.jarvisService.askJarvis({ question });
             
             if (!jarvisResponse || !jarvisResponse.answer) {
-              return alexaPlainText(
+              return alexaSpeak(
                 'Lo siento, no pude generar un análisis. Por favor, intenta con otro tema.',
                 false,
-                true,
                 sessionAttributes,
               );
             }
@@ -283,13 +271,12 @@ export class AlexaController {
               lastTimestamp: new Date().toISOString(),
             };
 
-            return alexaPlainText(answer, false, true, updatedSessionAttributes);
+            return alexaSpeak(answer, false, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en ResearchIntent: ${error.message}`, error.stack);
-            return alexaPlainText(
+            return alexaSpeak(
               'Lo siento, ocurrió un error al procesar la investigación. Por favor, intenta de nuevo.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -303,10 +290,9 @@ export class AlexaController {
                        null;
           
           if (!topic || topic.trim() === '') {
-            return alexaPlainText(
+            return alexaSpeak(
               'No entendí sobre qué quieres mi opinión. Por favor, intenta nuevamente.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -317,10 +303,9 @@ export class AlexaController {
             const jarvisResponse = await this.jarvisService.askJarvis({ question });
             
             if (!jarvisResponse || !jarvisResponse.answer) {
-              return alexaPlainText(
+              return alexaSpeak(
                 'Lo siento, no pude generar una opinión. Por favor, intenta con otro tema.',
                 false,
-                true,
                 sessionAttributes,
               );
             }
@@ -337,13 +322,12 @@ export class AlexaController {
               lastTimestamp: new Date().toISOString(),
             };
 
-            return alexaPlainText(answer, false, true, updatedSessionAttributes);
+            return alexaSpeak(answer, false, updatedSessionAttributes);
           } catch (error) {
             this.logger.error(`Error en OpinionIntent: ${error.message}`, error.stack);
-            return alexaPlainText(
+            return alexaSpeak(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
-              true,
               sessionAttributes,
             );
           }
@@ -352,26 +336,24 @@ export class AlexaController {
         // Manejar AMAZON.HelpIntent
         if (intent.name === 'AMAZON.HelpIntent') {
           const sessionAttributes = payload?.session?.attributes || {};
-          return alexaPlainText(
+          return alexaSpeak(
             'Puedes preguntarme sobre cualquier tema técnico, pedirme que compare conceptos, que te enseñe algo, que investigue un tema, o que te dé mi opinión. Por ejemplo: "pregunta qué es inteligencia artificial" o "enséñame sobre programación".',
             false,
-            true,
             sessionAttributes,
           );
         }
 
         // Manejar AMAZON.StopIntent y AMAZON.CancelIntent
         if (intent.name === 'AMAZON.StopIntent' || intent.name === 'AMAZON.CancelIntent') {
-          return alexaPlainText('Hasta luego.', true, false);
+          return alexaSpeak('Hasta luego.', true);
         }
 
         // Manejar otros intents si es necesario
         this.logger.warn(`Intent no reconocido: ${intent.name}`);
         const sessionAttributes = payload?.session?.attributes || {};
-        const response = alexaPlainText(
+        const response = alexaSpeak(
           'No puedo procesar esa solicitud. Por favor, intenta hacer una pregunta.',
           false,
-          true,
           sessionAttributes,
         );
         this.logger.debug(`Unknown intent response: ${JSON.stringify(response)}`);
@@ -392,20 +374,20 @@ export class AlexaController {
 
       // Fallback - Para cualquier otro tipo de solicitud
       this.logger.warn(`Tipo de solicitud no reconocido: ${request.type}`);
-      const response = alexaPlainText(
+      const sessionAttributes = payload?.session?.attributes || {};
+      const response = alexaSpeak(
         'No entendí la solicitud. Por favor, intenta de nuevo.',
         false,
-        true,
+        sessionAttributes,
       );
       this.logger.debug(`Fallback response: ${JSON.stringify(response)}`);
       return response;
     } catch (error) {
       // Catch general para cualquier error no manejado
       this.logger.error(`Error crítico en handleAlexa: ${error.message}`, error.stack);
-      const response = alexaPlainText(
+      const response = alexaSpeak(
         'Ocurrió un error procesando tu solicitud. Por favor, intenta más tarde.',
         true,
-        false,
       );
       this.logger.debug(`Critical error response: ${JSON.stringify(response)}`);
       return response;

@@ -22,17 +22,29 @@ export function alexaSpeak(
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 
-  return {
+  const response: any = {
     version: '1.0',
     sessionAttributes,
     response: {
       outputSpeech: {
         type: 'SSML',
-        ssml: `<speak>${cleanText}</speak>`,
+        ssml: `<speak><voice name="Andrés">${cleanText}</voice></speak>`,
       },
       shouldEndSession,
     },
   };
+
+  // Agregar reprompt para mantener la conversación viva (si no se debe terminar la sesión)
+  if (!shouldEndSession) {
+    response.response.reprompt = {
+      outputSpeech: {
+        type: 'SSML',
+        ssml: `<speak><voice name="Andrés">¿Deseas que lo explique con más detalle, te doy un ejemplo, o hacemos otra pregunta?</voice></speak>`,
+      },
+    };
+  }
+
+  return response;
 }
 
 /**
