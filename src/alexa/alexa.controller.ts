@@ -22,6 +22,7 @@ export class AlexaController {
         const response = alexaPlainText(
           'Error: No se recibió una solicitud válida.',
           true,
+          false,
         );
         this.logger.debug(`No request response: ${JSON.stringify(response)}`);
         return response;
@@ -33,6 +34,7 @@ export class AlexaController {
         const response = alexaPlainText(
           'Hola, soy Jarvis. ¿Qué deseas preguntar?',
           false,
+          true,
         );
         this.logger.debug(`LaunchRequest response: ${JSON.stringify(response)}`);
         return response;
@@ -46,9 +48,10 @@ export class AlexaController {
 
         if (!intent) {
           this.logger.warn('Intent no encontrado en la solicitud');
-          return alexaSpeak(
+          return alexaPlainText(
             'No pude identificar tu solicitud. Por favor, intenta nuevamente.',
             false,
+            true,
           );
         }
 
@@ -65,8 +68,9 @@ export class AlexaController {
           if (!question || question.trim() === '') {
             this.logger.warn(`${slotName} no encontrado o vacío en los slots`);
             return alexaPlainText(
-              defaultMessage,
+              'No entendí la pregunta. ¿Puedes repetirla?',
               false,
+              true,
             );
           }
 
@@ -81,18 +85,15 @@ export class AlexaController {
               return alexaPlainText(
                 'Lo siento, no pude generar una respuesta. Por favor, intenta con otra pregunta.',
                 false,
+                true,
               );
             }
 
-            // Limitar longitud de respuesta (Alexa tiene límite de 8000 caracteres)
+            // La respuesta ya viene limitada y sanitizada del servicio
             let answer = jarvisResponse.answer || '';
-            if (answer.length > 7000) {
-              this.logger.warn(`Respuesta muy larga (${answer.length} chars), truncando...`);
-              answer = answer.substring(0, 7000) + '...';
-            }
-
-            // Devolver respuesta en formato PlainText
-            const alexaResponse = alexaPlainText(answer, false);
+            
+            // Devolver respuesta en formato PlainText con reprompt
+            const alexaResponse = alexaPlainText(answer, false, true);
             this.logger.debug(`Respuesta a enviar a Alexa: ${JSON.stringify(alexaResponse)}`);
             
             return alexaResponse;
@@ -101,6 +102,7 @@ export class AlexaController {
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.',
               false,
+              true,
             );
           }
         };
@@ -143,12 +145,13 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false);
+            return alexaPlainText(answer, false, true);
           } catch (error) {
             this.logger.error(`Error en CompareIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la comparación. Por favor, intenta de nuevo.',
               false,
+              true,
             );
           }
         }
@@ -163,6 +166,7 @@ export class AlexaController {
             return alexaPlainText(
               'No entendí sobre qué tema quieres aprender. Por favor, intenta nuevamente.',
               false,
+              true,
             );
           }
 
@@ -175,6 +179,7 @@ export class AlexaController {
               return alexaPlainText(
                 'Lo siento, no pude generar una explicación. Por favor, intenta con otro tema.',
                 false,
+                true,
               );
             }
 
@@ -183,12 +188,13 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false);
+            return alexaPlainText(answer, false, true);
           } catch (error) {
             this.logger.error(`Error en TeachIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
+              true,
             );
           }
         }
@@ -203,6 +209,7 @@ export class AlexaController {
             return alexaPlainText(
               'No entendí sobre qué tema quieres que investigue. Por favor, intenta nuevamente.',
               false,
+              true,
             );
           }
 
@@ -215,6 +222,7 @@ export class AlexaController {
               return alexaPlainText(
                 'Lo siento, no pude generar un análisis. Por favor, intenta con otro tema.',
                 false,
+                true,
               );
             }
 
@@ -223,12 +231,13 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false);
+            return alexaPlainText(answer, false, true);
           } catch (error) {
             this.logger.error(`Error en ResearchIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la investigación. Por favor, intenta de nuevo.',
               false,
+              true,
             );
           }
         }
@@ -243,6 +252,7 @@ export class AlexaController {
             return alexaPlainText(
               'No entendí sobre qué quieres mi opinión. Por favor, intenta nuevamente.',
               false,
+              true,
             );
           }
 
@@ -255,6 +265,7 @@ export class AlexaController {
               return alexaPlainText(
                 'Lo siento, no pude generar una opinión. Por favor, intenta con otro tema.',
                 false,
+                true,
               );
             }
 
@@ -263,12 +274,13 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            return alexaPlainText(answer, false);
+            return alexaPlainText(answer, false, true);
           } catch (error) {
             this.logger.error(`Error en OpinionIntent: ${error.message}`, error.stack);
             return alexaPlainText(
               'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
               false,
+              true,
             );
           }
         }
@@ -278,6 +290,7 @@ export class AlexaController {
           return alexaPlainText(
             'Puedes preguntarme sobre cualquier tema técnico, pedirme que compare conceptos, que te enseñe algo, que investigue un tema, o que te dé mi opinión. Por ejemplo: "pregunta qué es inteligencia artificial" o "enséñame sobre programación".',
             false,
+            true,
           );
         }
 
@@ -291,6 +304,7 @@ export class AlexaController {
         const response = alexaPlainText(
           'No puedo procesar esa solicitud. Por favor, intenta hacer una pregunta.',
           false,
+          true,
         );
         this.logger.debug(`Unknown intent response: ${JSON.stringify(response)}`);
         return response;
@@ -312,6 +326,7 @@ export class AlexaController {
       this.logger.warn(`Tipo de solicitud no reconocido: ${request.type}`);
       const response = alexaPlainText(
         'No entendí la solicitud. Por favor, intenta de nuevo.',
+        false,
         true,
       );
       this.logger.debug(`Fallback response: ${JSON.stringify(response)}`);
@@ -322,6 +337,7 @@ export class AlexaController {
       const response = alexaPlainText(
         'Ocurrió un error procesando tu solicitud. Por favor, intenta más tarde.',
         true,
+        false,
       );
       this.logger.debug(`Critical error response: ${JSON.stringify(response)}`);
       return response;

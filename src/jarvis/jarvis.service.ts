@@ -101,6 +101,73 @@ export class JarvisService {
   }
 
   /**
+   * Normaliza la pregunta del usuario para corregir problemas de pronunciación de Alexa
+   * Convierte "punto j s" → "js", "node punto j s" → "node.js", etc.
+   * @param question - Pregunta a normalizar
+   * @returns Pregunta normalizada
+   */
+  private normalizeQuestion(question: string): string {
+    let normalized = question.toLowerCase().trim();
+
+    // Normalizar pronunciaciones comunes de tecnologías
+    normalized = normalized
+      .replace(/\bpunto j s\b/g, 'js')
+      .replace(/\bpunto js\b/g, '.js')
+      .replace(/\bj s\b/g, 'js')
+      .replace(/\bpunto\s+/g, '.')
+      .replace(/\s+punto\b/g, '.')
+      .replace(/\bpunto\b/g, '.');
+
+    // Normalizar nombres de tecnologías comunes
+    normalized = normalized
+      .replace(/\bnode punto j s\b/g, 'node.js')
+      .replace(/\bnode j s\b/g, 'node.js')
+      .replace(/\breact punto j s\b/g, 'react.js')
+      .replace(/\bvue punto j s\b/g, 'vue.js')
+      .replace(/\bangular punto j s\b/g, 'angular.js')
+      .replace(/\btypescript\b/g, 'typescript')
+      .replace(/\bjavascript\b/g, 'javascript');
+
+    // Limpiar espacios múltiples
+    normalized = normalized.replace(/\s{2,}/g, ' ').trim();
+
+    return normalized;
+  }
+
+  /**
+   * Limita la longitud del texto para que sea adecuado para voz (45-60 segundos)
+   * Aproximadamente 300-400 palabras o 2000 caracteres
+   * @param text - Texto a limitar
+   * @returns Texto limitado
+   */
+  private limitForVoice(text: string, maxChars: number = 2000): string {
+    if (text.length <= maxChars) {
+      return text;
+    }
+
+    // Truncar en el último punto, signo de interrogación o exclamación antes del límite
+    const truncated = text.substring(0, maxChars);
+    const lastSentence = truncated.lastIndexOf('.');
+    const lastQuestion = truncated.lastIndexOf('?');
+    const lastExclamation = truncated.lastIndexOf('!');
+    
+    const lastPunctuation = Math.max(lastSentence, lastQuestion, lastExclamation);
+    
+    if (lastPunctuation > maxChars * 0.7) {
+      // Si encontramos puntuación cerca del límite, cortar ahí
+      return truncated.substring(0, lastPunctuation + 1) + ' ¿Deseas que continúe?';
+    }
+
+    // Si no, cortar en el último espacio
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > maxChars * 0.8) {
+      return truncated.substring(0, lastSpace) + '... ¿Deseas que continúe?';
+    }
+
+    return truncated + '...';
+  }
+
+  /**
    * Sanitiza el texto para que sea compatible con Alexa
    * Elimina markdown, listas largas y formatea para voz
    * @param text - Texto a sanitizar
@@ -124,10 +191,13 @@ export class JarvisService {
    */
   async askJarvis(askDto: AskJarvisDto): Promise<JarvisResponseDto> {
     try {
-      this.logger.log(`Procesando pregunta: ${askDto.question.substring(0, 50)}...`);
+      // Normalizar la pregunta antes de procesarla
+      const normalizedQuestion = this.normalizeQuestion(askDto.question);
+      this.logger.log(`Pregunta original: ${askDto.question.substring(0, 50)}...`);
+      this.logger.log(`Pregunta normalizada: ${normalizedQuestion.substring(0, 50)}...`);
 
-      // Detectar modo de respuesta
-      const responseMode = this.detectResponseMode(askDto.question);
+      // Detectar modo de respuesta usando la pregunta normalizada
+      const responseMode = this.detectResponseMode(normalizedQuestion);
       this.logger.debug(`Modo de respuesta detectado: ${responseMode}`);
 
       // Ajustar tokens según el modo de respuesta
@@ -169,7 +239,7 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
         },
         {
           role: 'user' as const,
-          content: askDto.question,
+          content: normalizedQuestion,
         },
       ];
 
@@ -190,6 +260,9 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
 
       // Sanitizar respuesta para Alexa (eliminar markdown, formatear para voz)
       answer = this.sanitizeForAlexa(answer);
+
+      // Limitar longitud para voz (45-60 segundos ≈ 2000 caracteres)
+      answer = this.limitForVoice(answer, 2000);
 
       this.logger.log('Respuesta generada exitosamente');
 
@@ -225,10 +298,12 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
     onChunk: (chunk: string) => void,
   ): Promise<void> {
     try {
-      this.logger.log(`Procesando pregunta con streaming: ${askDto.question.substring(0, 50)}...`);
+      // Normalizar la pregunta antes de procesarla
+      const normalizedQuestion = this.normalizeQuestion(askDto.question);
+      this.logger.log(`Procesando pregunta con streaming: ${normalizedQuestion.substring(0, 50)}...`);
 
       // Detectar modo de respuesta para streaming también
-      const responseMode = this.detectResponseMode(askDto.question);
+      const responseMode = this.detectResponseMode(normalizedQuestion);
       let systemPrompt = JARVIS_SYSTEM_PROMPT;
 
       if (responseMode === 'short') {
@@ -239,6 +314,9 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
         systemPrompt += '\n\nResponde de forma técnica, estructurada y detallada. Usa ejemplos si es posible.';
       }
 
+      // Normalizar pregunta para streaming también
+      const normalizedQuestion = this.normalizeQuestion(askDto.question);
+
       const messages = [
         {
           role: 'system' as const,
@@ -246,7 +324,7 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
         },
         {
           role: 'user' as const,
-          content: askDto.question,
+          content: normalizedQuestion,
         },
       ];
 
