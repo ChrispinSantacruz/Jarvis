@@ -52,25 +52,22 @@ export class AlexaController {
           );
         }
 
-        // Manejar AskJarvisIntent
-        if (intent.name === 'AskJarvisIntent') {
-          // Intentar obtener la pregunta de diferentes formatos de slots
-          const questionSlot = intent?.slots?.question;
+        // Función helper para procesar cualquier pregunta
+        const processQuestion = async (slotName: string, defaultMessage: string) => {
+          const questionSlot = intent?.slots?.[slotName];
           let question = questionSlot?.value || 
                         questionSlot?.slotValue?.value || 
                         null;
 
-          this.logger.debug(`Slot question recibido: ${JSON.stringify(questionSlot)}`);
+          this.logger.debug(`Slot ${slotName} recibido: ${JSON.stringify(questionSlot)}`);
           this.logger.debug(`Pregunta extraída: ${question}`);
 
           if (!question || question.trim() === '') {
-            this.logger.warn('Pregunta no encontrada o vacía en los slots');
-            const response = alexaPlainText(
-              'No entendí la pregunta. Por favor, intenta nuevamente con una pregunta clara.',
+            this.logger.warn(`${slotName} no encontrado o vacío en los slots`);
+            return alexaPlainText(
+              defaultMessage,
               false,
             );
-            this.logger.debug(`Empty question response: ${JSON.stringify(response)}`);
-            return response;
           }
 
           try {
@@ -81,12 +78,10 @@ export class AlexaController {
 
             if (!jarvisResponse || !jarvisResponse.answer) {
               this.logger.error('Respuesta vacía de JarvisService');
-              const response = alexaPlainText(
+              return alexaPlainText(
                 'Lo siento, no pude generar una respuesta. Por favor, intenta con otra pregunta.',
                 false,
               );
-              this.logger.debug(`Empty response from Jarvis: ${JSON.stringify(response)}`);
-              return response;
             }
 
             // Limitar longitud de respuesta (Alexa tiene límite de 8000 caracteres)
@@ -96,23 +91,199 @@ export class AlexaController {
               answer = answer.substring(0, 7000) + '...';
             }
 
-            // Devolver respuesta en formato PlainText (más compatible)
-            this.logger.log('Respuesta generada exitosamente');
+            // Devolver respuesta en formato PlainText
             const alexaResponse = alexaPlainText(answer, false);
-            
-            // Log de la respuesta que se envía a Alexa
             this.logger.debug(`Respuesta a enviar a Alexa: ${JSON.stringify(alexaResponse)}`);
             
             return alexaResponse;
           } catch (error) {
             this.logger.error(`Error al procesar pregunta: ${error.message}`, error.stack);
-            const response = alexaPlainText(
-              'Lo siento, ocurrió un error al procesar tu pregunta. Por favor, intenta de nuevo.',
+            return alexaPlainText(
+              'Lo siento, ocurrió un error al procesar tu solicitud. Por favor, intenta de nuevo.',
               false,
             );
-            this.logger.debug(`Error response: ${JSON.stringify(response)}`);
-            return response;
           }
+        };
+
+        // Manejar AskJarvisIntent
+        if (intent.name === 'AskJarvisIntent') {
+          return await processQuestion(
+            'question',
+            'No entendí la pregunta. Por favor, intenta nuevamente con una pregunta clara.'
+          );
+        }
+
+        // Manejar CompareIntent
+        if (intent.name === 'CompareIntent') {
+          const comparison = intent?.slots?.comparison?.value || 
+                            intent?.slots?.comparison?.slotValue?.value || 
+                            null;
+          
+          if (!comparison || comparison.trim() === '') {
+            return alexaPlainText(
+              'No entendí qué quieres comparar. Por favor, intenta nuevamente.',
+              false,
+            );
+          }
+
+          const question = `Compara y explica las diferencias entre: ${comparison.trim()}`;
+          try {
+            this.logger.log(`Procesando comparación: ${question}`);
+            const jarvisResponse = await this.jarvisService.askJarvis({ question });
+            
+            if (!jarvisResponse || !jarvisResponse.answer) {
+              return alexaPlainText(
+                'Lo siento, no pude generar una comparación. Por favor, intenta con otra pregunta.',
+                false,
+              );
+            }
+
+            let answer = jarvisResponse.answer || '';
+            if (answer.length > 7000) {
+              answer = answer.substring(0, 7000) + '...';
+            }
+
+            return alexaPlainText(answer, false);
+          } catch (error) {
+            this.logger.error(`Error en CompareIntent: ${error.message}`, error.stack);
+            return alexaPlainText(
+              'Lo siento, ocurrió un error al procesar la comparación. Por favor, intenta de nuevo.',
+              false,
+            );
+          }
+        }
+
+        // Manejar TeachIntent
+        if (intent.name === 'TeachIntent') {
+          const topic = intent?.slots?.topic?.value || 
+                       intent?.slots?.topic?.slotValue?.value || 
+                       null;
+          
+          if (!topic || topic.trim() === '') {
+            return alexaPlainText(
+              'No entendí sobre qué tema quieres aprender. Por favor, intenta nuevamente.',
+              false,
+            );
+          }
+
+          const question = `Enséñame sobre ${topic.trim()} desde cero, de forma clara y estructurada.`;
+          try {
+            this.logger.log(`Procesando enseñanza: ${question}`);
+            const jarvisResponse = await this.jarvisService.askJarvis({ question });
+            
+            if (!jarvisResponse || !jarvisResponse.answer) {
+              return alexaPlainText(
+                'Lo siento, no pude generar una explicación. Por favor, intenta con otro tema.',
+                false,
+              );
+            }
+
+            let answer = jarvisResponse.answer || '';
+            if (answer.length > 7000) {
+              answer = answer.substring(0, 7000) + '...';
+            }
+
+            return alexaPlainText(answer, false);
+          } catch (error) {
+            this.logger.error(`Error en TeachIntent: ${error.message}`, error.stack);
+            return alexaPlainText(
+              'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
+              false,
+            );
+          }
+        }
+
+        // Manejar ResearchIntent
+        if (intent.name === 'ResearchIntent') {
+          const topic = intent?.slots?.topic?.value || 
+                       intent?.slots?.topic?.slotValue?.value || 
+                       null;
+          
+          if (!topic || topic.trim() === '') {
+            return alexaPlainText(
+              'No entendí sobre qué tema quieres que investigue. Por favor, intenta nuevamente.',
+              false,
+            );
+          }
+
+          const question = `Haz un análisis y resumen completo sobre: ${topic.trim()}`;
+          try {
+            this.logger.log(`Procesando investigación: ${question}`);
+            const jarvisResponse = await this.jarvisService.askJarvis({ question });
+            
+            if (!jarvisResponse || !jarvisResponse.answer) {
+              return alexaPlainText(
+                'Lo siento, no pude generar un análisis. Por favor, intenta con otro tema.',
+                false,
+              );
+            }
+
+            let answer = jarvisResponse.answer || '';
+            if (answer.length > 7000) {
+              answer = answer.substring(0, 7000) + '...';
+            }
+
+            return alexaPlainText(answer, false);
+          } catch (error) {
+            this.logger.error(`Error en ResearchIntent: ${error.message}`, error.stack);
+            return alexaPlainText(
+              'Lo siento, ocurrió un error al procesar la investigación. Por favor, intenta de nuevo.',
+              false,
+            );
+          }
+        }
+
+        // Manejar OpinionIntent
+        if (intent.name === 'OpinionIntent') {
+          const topic = intent?.slots?.topic?.value || 
+                       intent?.slots?.topic?.slotValue?.value || 
+                       null;
+          
+          if (!topic || topic.trim() === '') {
+            return alexaPlainText(
+              'No entendí sobre qué quieres mi opinión. Por favor, intenta nuevamente.',
+              false,
+            );
+          }
+
+          const question = `Dame tu opinión técnica y profesional sobre: ${topic.trim()}`;
+          try {
+            this.logger.log(`Procesando opinión: ${question}`);
+            const jarvisResponse = await this.jarvisService.askJarvis({ question });
+            
+            if (!jarvisResponse || !jarvisResponse.answer) {
+              return alexaPlainText(
+                'Lo siento, no pude generar una opinión. Por favor, intenta con otro tema.',
+                false,
+              );
+            }
+
+            let answer = jarvisResponse.answer || '';
+            if (answer.length > 7000) {
+              answer = answer.substring(0, 7000) + '...';
+            }
+
+            return alexaPlainText(answer, false);
+          } catch (error) {
+            this.logger.error(`Error en OpinionIntent: ${error.message}`, error.stack);
+            return alexaPlainText(
+              'Lo siento, ocurrió un error al procesar la solicitud. Por favor, intenta de nuevo.',
+              false,
+            );
+          }
+        }
+
+        // Manejar AMAZON.HelpIntent
+        if (intent.name === 'AMAZON.HelpIntent') {
+          return alexaPlainText(
+            'Puedes preguntarme sobre cualquier tema técnico, pedirme que compare conceptos, que te enseñe algo, que investigue un tema, o que te dé mi opinión. Por ejemplo: "pregunta qué es inteligencia artificial" o "enséñame sobre programación".',
+            false,
+          );
+        }
+
+        // Manejar AMAZON.StopIntent y AMAZON.CancelIntent
+        if (intent.name === 'AMAZON.StopIntent' || intent.name === 'AMAZON.CancelIntent') {
+          return alexaPlainText('Hasta luego.', true);
         }
 
         // Manejar otros intents si es necesario
@@ -125,12 +296,16 @@ export class AlexaController {
         return response;
       }
 
-      // SessionEndedRequest
+      // SessionEndedRequest - Manejo silencioso
       if (request.type === 'SessionEndedRequest') {
-        this.logger.log('SessionEndedRequest recibido');
-        const response = alexaPlainText('Hasta luego.', true);
-        this.logger.debug(`SessionEnded response: ${JSON.stringify(response)}`);
-        return response;
+        this.logger.log('SessionEndedRequest recibido (manejo silencioso)');
+        // Respuesta mínima requerida por Alexa
+        return {
+          version: '1.0',
+          response: {
+            shouldEndSession: true,
+          },
+        };
       }
 
       // Fallback - Para cualquier otro tipo de solicitud
