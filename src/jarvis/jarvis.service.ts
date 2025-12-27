@@ -314,9 +314,6 @@ INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé co
         systemPrompt += '\n\nResponde de forma técnica, estructurada y detallada. Usa ejemplos si es posible.';
       }
 
-      // Normalizar pregunta para streaming también
-      const normalizedQuestion = this.normalizeQuestion(askDto.question);
-
       const messages = [
         {
           role: 'system' as const,
