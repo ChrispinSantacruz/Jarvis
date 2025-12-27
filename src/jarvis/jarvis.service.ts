@@ -32,8 +32,9 @@ export class JarvisService {
     this.temperature = parseFloat(
       this.configService.get<string>('GROQ_TEMPERATURE', '1'),
     );
+    // Tokens por defecto: 250 para respuestas cortas, se ajusta dinámicamente según el modo
     this.maxTokens = parseInt(
-      this.configService.get<string>('GROQ_MAX_TOKENS', '1024'),
+      this.configService.get<string>('GROQ_MAX_TOKENS', '250'),
     );
     this.topP = parseFloat(this.configService.get<string>('GROQ_TOP_P', '1'));
 
@@ -43,36 +44,60 @@ export class JarvisService {
   /**
    * Detecta el modo de respuesta basado en palabras clave en la pregunta
    * @param question - Pregunta del usuario
-   * @returns Modo de respuesta: 'short', 'long', o 'technical'
+   * @returns Modo de respuesta: 'short', 'default', o 'technical'
    */
-  private detectResponseMode(question: string): 'short' | 'long' | 'technical' {
+  private detectResponseMode(question: string): 'short' | 'default' | 'technical' {
     const q = question.toLowerCase();
 
+    // Detectar respuestas cortas (una frase)
     if (
       q.includes('en una frase') ||
+      q.includes('una frase') ||
       q.includes('rápido') ||
       q.includes('resumen') ||
       q.includes('breve') ||
       q.includes('corto') ||
       q.includes('solo') ||
-      q.includes('sólo')
+      q.includes('sólo') ||
+      q.includes('súper breve')
     ) {
       return 'short';
     }
 
+    // Detectar respuestas técnicas/largas (el usuario lo pide explícitamente)
     if (
       q.includes('técnico') ||
+      q.includes('técnica') ||
       q.includes('profundo') ||
+      q.includes('profunda') ||
       q.includes('detallado') ||
-      q.includes('paso a paso') ||
+      q.includes('detallada') ||
       q.includes('detalladamente') ||
+      q.includes('paso a paso') ||
       q.includes('explicación completa') ||
-      q.includes('desde cero')
+      q.includes('explicación detallada') ||
+      q.includes('explicación técnica') ||
+      q.includes('desde cero') ||
+      q.includes('estructura') ||
+      q.includes('completo') ||
+      q.includes('completa') ||
+      q.includes('enséñame') ||
+      q.includes('enseñame') ||
+      q.includes('investiga') ||
+      q.includes('analiza') ||
+      q.includes('análisis') ||
+      q.includes('arquitectura') ||
+      q.includes('cómo funciona') ||
+      q.includes('como funciona') ||
+      q.includes('funcionamiento') ||
+      q.includes('implementación') ||
+      q.includes('implementacion')
     ) {
       return 'technical';
     }
 
-    return 'long';
+    // Por defecto: respuesta corta (2 frases máximo)
+    return 'default';
   }
 
   /**
@@ -105,21 +130,34 @@ export class JarvisService {
       const responseMode = this.detectResponseMode(askDto.question);
       this.logger.debug(`Modo de respuesta detectado: ${responseMode}`);
 
+      // Ajustar tokens según el modo de respuesta
+      let maxTokensForRequest = this.maxTokens;
+      if (responseMode === 'short') {
+        maxTokensForRequest = 100; // Una frase corta
+      } else if (responseMode === 'technical') {
+        maxTokensForRequest = 1024; // Respuesta técnica detallada
+      } else {
+        maxTokensForRequest = 250; // Default: 2 frases
+      }
+
       // Ajustar el prompt del sistema según el modo
       let systemPrompt = JARVIS_SYSTEM_PROMPT;
 
       if (responseMode === 'short') {
         systemPrompt += `
 
-Responde en una sola frase clara, directa y concisa. Máximo 20 palabras.
+INSTRUCCIÓN ESPECÍFICA: Responde en UNA SOLA FRASE clara, directa y concisa. Máximo 20 palabras. Sin explicaciones adicionales.
 `;
-      }
-
-      if (responseMode === 'technical') {
+      } else if (responseMode === 'technical') {
         systemPrompt += `
 
-Responde de forma técnica, estructurada y detallada. Usa ejemplos si es posible.
-Organiza la información de manera clara y lógica.
+INSTRUCCIÓN ESPECÍFICA: Responde de forma técnica, estructurada y detallada. Usa ejemplos si es posible. Organiza la información de manera clara y lógica. Puedes incluir conceptos técnicos, arquitectura, implementación y mejores prácticas.
+`;
+      } else {
+        // Modo default: 2 frases máximo
+        systemPrompt += `
+
+INSTRUCCIÓN ESPECÍFICA: Responde en MÁXIMO 2 FRASES claras y directas. Sé conciso pero completo. NO des listas largas ni explicaciones extensas.
 `;
       }
 
@@ -135,12 +173,12 @@ Organiza la información de manera clara y lógica.
         },
       ];
 
-      // Llamar a la API de Groq
+      // Llamar a la API de Groq con tokens ajustados
       const chatCompletion = await this.groq.chat.completions.create({
         messages: messages,
         model: this.model,
         temperature: this.temperature,
-        max_tokens: this.maxTokens,
+        max_tokens: maxTokensForRequest,
         top_p: this.topP,
         stream: false,
       });
